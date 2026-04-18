@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Veyo Messenger</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+  <!-- AUTH SCREEN -->
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-container">
+      <div class="auth-logo">
+        <img class="logo-dark" src="https://res.cloudinary.com/dgg0ph1bx/image/upload/v1775174468/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA_%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0_2026-04-03_050058_shmse2.png" alt="Logo">
+        <img class="logo-light" src="https://res.cloudinary.com/dgg0ph1bx/image/upload/v1775174449/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA_%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0_2026-04-03_050039_fjsoro.png" alt="Logo">
+      </div>
+      <h1 class="auth-title">Veyo Messenger</h1>
+      
+      <!-- LOGIN FORM -->
+      <form class="auth-form" id="loginForm">
+        <h2 data-i18n="login">Sign In</h2>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="email@example.com" required>
+        </div>
+        <div class="auth-field">
+          <label data-i18n="password">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required>
+        </div>
+        <div class="auth-error" id="loginError"></div>
+        <button type="submit" class="auth-btn" data-i18n="signIn">Sign In</button>
+        <p class="auth-switch">
+          <span data-i18n="noAccount">Don't have an account?</span>
+          <a href="#" id="showRegister" data-i18n="register">Register</a>
+        </p>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form class="auth-form hidden" id="registerForm">
+        <h2 data-i18n="register">Register</h2>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="email@example.com" required>
+        </div>
+        <div class="auth-field">
+          <label data-i18n="password">Password</label>
+          <input type="password" id="regPassword" placeholder="••••••••" minlength="6" required>
+        </div>
+        <div class="auth-field">
+          <label data-i18n="tag">Tag</label>
+          <div class="tag-input-wrapper">
+            <span class="tag-prefix">@</span>
+            <input type="text" id="regTag" placeholder="YOUR_TAG" maxlength="24" required>
+          </div>
+          <small class="auth-hint" data-i18n="tagRule">A-Z, _ only. Unique tag for friends to find you.</small>
+        </div>
+        <div class="auth-error" id="registerError"></div>
+        <button type="submit" class="auth-btn" data-i18n="register">Register</button>
+        <p class="auth-switch">
+          <span data-i18n="haveAccount">Already have an account?</span>
+          <a href="#" id="showLogin" data-i18n="signIn">Sign In</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- WELCOME SETUP (after first register) -->
+  <div class="welcome-overlay" id="welcomeOverlay"></div>
+  <div class="welcome-modal" id="welcomeModal">
+    <h2 data-i18n="welcomeSetup">Welcome! Set up your profile</h2>
+    <div class="welcome-avatar-section">
+      <div class="welcome-avatar" id="welcomeAvatar">
+        <div class="avatar-placeholder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="avatar-media" id="welcomeAvatarMedia" style="display:none;"></div>
+      </div>
+    </div>
+    <div class="welcome-form">
+      <div class="form-group">
+        <label data-i18n="avatarUrl">Avatar URL</label>
+        <input type="text" id="welcomeAvatarInput" placeholder="https://... .png .jpg .webp .mp4" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label data-i18n="nickname">Nickname</label>
+        <input type="text" id="welcomeNicknameInput" placeholder="YOUR_NAME" maxlength="32" spellcheck="false" required>
+        <small class="form-hint" data-i18n="nickRule">A-Z, 0-9, space, _ - only. English only.</small>
+        <div class="form-error" id="welcomeNickError"></div>
+      </div>
+      <button class="save-profile-btn" id="welcomeSaveBtn" data-i18n="continue">Continue</button>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <!-- SIDEBAR -->
+    <aside class="sidebar gpu" id="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">
+          <img class="logo-dark" src="https://res.cloudinary.com/dgg0ph1bx/image/upload/v1775174468/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA_%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0_2026-04-03_050058_shmse2.png" alt="Logo">
+          <img class="logo-light" src="https://res.cloudinary.com/dgg0ph1bx/image/upload/v1775174449/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA_%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0_2026-04-03_050039_fjsoro.png" alt="Logo">
+        </div>
+        <h1 data-i18n="messenger">Messenger</h1>
+      </div>
+      <div class="search-box">
+        <input type="text" data-i18n-ph="search" placeholder="Search..." id="searchInput">
+      </div>
+      <div class="chat-list" id="chatList">
+        <div class="chat-item favorites-chat" id="favoritesChat">
+          <div class="chat-avatar favorites-avatar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffcc00" stroke="none">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <div class="chat-info">
+            <div class="chat-name" data-i18n="favorites">Favorites</div>
+            <div class="chat-last-msg" data-i18n="savedMessages">Saved messages</div>
+          </div>
+        </div>
+        <div class="chat-section-title">People</div>
+        <div class="users-list" id="usersList"></div>
+        
+        <div class="empty-contacts" id="emptyContacts">
+          <div class="empty-contacts-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <span data-i18n="noContacts">No contacts</span>
+        </div>
+      </div>
+
+      <!-- PROFILE BAR -->
+      <div class="profile-bar" id="profileBar">
+        <div class="profile-bar-banner" id="profileBarBanner"></div>
+        <div class="profile-bar-content">
+          <div class="profile-bar-avatar" id="profileBarAvatar" title="View profile">
+            <div class="profile-bar-avatar-placeholder">?</div>
+          </div>
+          <div class="profile-bar-info">
+            <div class="profile-bar-name" id="profileBarName">User</div>
+            <div class="profile-bar-tag" id="profileBarTag"></div>
+          </div>
+          <div class="profile-bar-actions">
+            <button class="profile-bar-btn settings-btn" id="settingsBtn" aria-label="Settings">
+              <div class="gear-wrapper">
+                <svg class="gear-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- SETTINGS PANEL -->
+    <div class="settings-overlay" id="settingsOverlay"></div>
+    <div class="settings-panel" id="settingsPanel">
+      <div class="panel-header">
+        <button class="back-btn-panel" id="settingsBackBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 data-i18n="settings">Settings</h2>
+      </div>
+      <div class="settings-menu">
+        <button class="settings-menu-item" id="openProfileEdit">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span data-i18n="profile">Profile</span>
+        </button>
+        <button class="settings-menu-item" id="openVoiceVideo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span data-i18n="voiceVideo">Voice & Video</span>
+        </button>
+        <button class="settings-menu-item" id="openAppearance">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><path d="M12 1v6m0 6v6"/><path d="M4.22 4.22l4.24 4.24m2.12 2.12l4.24 4.24"/><path d="M1 12h6m6 0h6"/><path d="M4.22 19.78l4.24-4.24m2.12-2.12l4.24-4.24"/><path d="M19.78 19.78l-4.24-4.24m-2.12-2.12l-4.24-4.24"/><path d="M19.78 4.22l-4.24 4.24m-2.12 2.12l-4.24 4.24"/></svg>
+          <span data-i18n="appearance">Appearance</span>
+        </button>
+        <button class="settings-menu-item logout-btn" id="logoutBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span data-i18n="logout">Log Out</span>
+        </button>
+      </div>
+      <div class="settings-bottom">
+      </div>
+    </div>
+
+    <!-- APPEARANCE PANEL -->
+    <div class="panel-overlay" id="appearanceOverlay"></div>
+    <div class="edit-panel" id="appearancePanel">
+      <div class="panel-header">
+        <button class="back-btn-panel" id="appearanceBackBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 data-i18n="appearance">Appearance</h2>
+      </div>
+      <div class="panel-content">
+        <div class="form-section">
+          <h3 data-i18n="theme">Theme</h3>
+          <div class="form-group">
+            <label data-i18n="theme">Theme</label>
+            <select id="appearanceThemeSelect">
+              <option value="dark" data-i18n="dark">Dark</option>
+              <option value="light" data-i18n="light">Light</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="language">Language</label>
+            <select id="appearanceLangSelect">
+              <option value="en">English</option>
+              <option value="ru">Русский</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>🔔 Notification Sounds</h3>
+          <div class="form-group">
+            <label data-i18n="soundIncoming">Incoming call sound</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="soundIncomingInput" class="sound-input" placeholder="Paste URL or leave empty for default" spellcheck="false">
+              <button class="test-btn" id="testSoundIncoming" data-i18n="testSound">Test</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label data-i18n="soundAccept">Accept sound</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="soundAcceptInput" class="sound-input" placeholder="Paste URL or leave empty for default" spellcheck="false">
+              <button class="test-btn" id="testSoundAccept" data-i18n="testSound">Test</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label data-i18n="soundReject">Reject sound</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="soundRejectInput" class="sound-input" placeholder="Paste URL or leave empty for default" spellcheck="false">
+              <button class="test-btn" id="testSoundReject" data-i18n="testSound">Test</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label data-i18n="soundMessage">Message sound</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="soundMessageInput" class="sound-input" placeholder="Paste URL or leave empty for default" spellcheck="false">
+              <button class="test-btn" id="testSoundMessage" data-i18n="testSound">Test</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="save-profile-btn" id="saveSoundsBtn" data-i18n="save">Save</button>
+      </div>
+    </div>
+
+    <!-- PROFILE EDIT PANEL -->
+    <div class="panel-overlay" id="profileEditOverlay"></div>
+    <div class="edit-panel" id="profileEditPanel">
+      <div class="panel-header">
+        <button class="back-btn-panel" id="profileEditBackBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 data-i18n="editProfile">Edit Profile</h2>
+      </div>
+      <div class="edit-panel-scroll">
+        <div class="profile-edit-banner" id="profileBanner">
+          <div class="banner-placeholder" id="bannerPlaceholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <span data-i18n="addBanner">Add banner</span>
+          </div>
+          <div class="banner-media" id="bannerMedia" style="display:none;"></div>
+        </div>
+        <div class="profile-edit-avatar-section">
+          <div class="profile-edit-avatar" id="profileEditAvatar">
+            <div class="avatar-placeholder" id="avatarPlaceholder">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="avatar-media" id="avatarMedia" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="profile-edit-form">
+          <div class="form-group">
+            <label data-i18n="avatarUrl">Avatar URL</label>
+            <input type="text" id="avatarUrlInput" placeholder="https://... .png .jpg .webp .mp4" spellcheck="false">
+          </div>
+          <div class="form-group">
+            <label data-i18n="bannerUrl">Banner URL</label>
+            <input type="text" id="bannerUrlInput" placeholder="https://... .png .jpg .webp .mp4" spellcheck="false">
+          </div>
+          <div class="form-group">
+            <label data-i18n="nickname">Nickname</label>
+            <input type="text" id="nicknameInput" placeholder="YOUR_NAME" maxlength="32" spellcheck="false">
+            <small class="form-hint" data-i18n="nickRule">A-Z, 0-9, space, _ - only. English only.</small>
+            <div class="form-error" id="nicknameError"></div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="tag">Tag (read-only)</label>
+            <div class="tag-input-wrapper readonly">
+              <span class="tag-prefix">@</span>
+              <input type="text" id="tagInput" placeholder="YOUR_TAG" maxlength="24" spellcheck="false" readonly>
+            </div>
+            <small class="form-hint" data-i18n="tagReadonly">Tag cannot be changed after registration.</small>
+          </div>
+          <div class="form-group">
+            <label data-i18n="aboutMe">About me</label>
+            <textarea id="aboutInput" data-i18n-ph="aboutPlaceholder" placeholder="Tell about yourself..." maxlength="200" spellcheck="false" rows="3"></textarea>
+            <small class="form-hint"><span id="aboutCount">0</span>/200</small>
+            <div class="form-error" id="aboutError"></div>
+          </div>
+
+          <!-- MUSIC TOGGLE -->
+          <button class="music-toggle-btn" id="musicToggleBtn" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span data-i18n="profileMusic">Profile Music</span>
+            <span class="music-arrow" id="musicArrow">▼</span>
+          </button>
+          <div class="music-fields hidden" id="musicFields">
+            <div class="form-group">
+              <label data-i18n="musicUrl">Music URL</label>
+              <input type="text" id="musicUrlInput" placeholder="https://... .mp3 .ogg .wav" spellcheck="false">
+            </div>
+            <div class="form-group">
+              <label data-i18n="musicCover">Cover URL</label>
+              <input type="text" id="musicCoverInput" placeholder="https://... .png .jpg .webp" spellcheck="false">
+            </div>
+            <div class="form-group">
+              <label data-i18n="musicName">Music Name</label>
+              <input type="text" id="musicNameInput" placeholder="Auto from filename" maxlength="64" spellcheck="false">
+            </div>
+            <div class="music-preview" id="musicPreview" style="display:none;">
+              <div class="music-preview-cover" id="musicPreviewCover">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+              <div class="music-preview-info">
+                <div class="music-preview-name" id="musicPreviewName">Track</div>
+                <div class="music-progress-wrap">
+                  <div class="music-progress-bar" id="musicProgressBar"></div>
+                </div>
+              </div>
+              <button class="music-play-btn" id="musicPlayBtn" type="button">▶</button>
+            </div>
+          </div>
+          <audio id="musicAudio" preload="none"></audio>
+          <button class="save-profile-btn" id="saveProfileBtn" data-i18n="save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VOICE & VIDEO PANEL -->
+    <div class="panel-overlay" id="vvOverlay"></div>
+    <div class="edit-panel" id="vvPanel">
+      <div class="panel-header">
+        <button class="back-btn-panel" id="vvBackBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 data-i18n="voiceVideo">Voice & Video</h2>
+      </div>
+      <div class="edit-panel-scroll">
+        <div class="vv-form">
+          <!-- MICROPHONE -->
+          <div class="vv-section">
+            <label data-i18n="microphone">Microphone</label>
+            <select id="micSelect"></select>
+            <button class="test-btn" id="testMicBtn" data-i18n="testMic">Test Microphone</button>
+            <div class="mic-meter" id="micMeter" style="display:none;">
+              <div class="mic-meter-fill" id="micMeterFill"></div>
+            </div>
+          </div>
+          <!-- CAMERA -->
+          <div class="vv-section">
+            <label data-i18n="camera">Camera</label>
+            <select id="cameraSelect"></select>
+            <button class="test-btn" id="testCameraBtn" data-i18n="testCamera">Test Camera</button>
+            <div class="camera-preview" id="cameraPreview" style="display:none;">
+              <video id="cameraVideo" autoplay muted playsinline></video>
+            </div>
+            <div class="no-camera" id="noCameraMsg" style="display:none;" data-i18n="noCameraMsg">No camera detected</div>
+          </div>
+          <!-- SPEAKERS -->
+          <div class="vv-section">
+            <label data-i18n="speakers">Speakers</label>
+            <select id="speakerSelect"></select>
+            <button class="test-btn" id="testSpeakerBtn" data-i18n="testSpeaker">Test Speakers</button>
+          </div>
+          <audio id="testAudio" preload="none" src="https://res.cloudinary.com/dgg0ph1bx/video/upload/v1775170390/melodic-calm-sound_ltexfh.mp3"></audio>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE VIEW MODAL -->
+    <div class="profile-modal-overlay" id="profileModalOverlay"></div>
+    <div class="profile-modal" id="profileModal">
+      <button class="modal-close" id="closeProfileModal">✕</button>
+      <div class="pm-banner" id="pmBanner"></div>
+      <div class="pm-avatar" id="pmAvatar">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="pm-info">
+        <h2 id="pmName">User</h2>
+        <span class="pm-tag" id="pmTag">@tag</span>
+        <p class="pm-about" id="pmAbout"></p>
+        <div class="pm-call-buttons">
+          <button class="call-btn voice-btn" id="pmVoiceCall" title="Voice Call">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
+          <button class="call-btn video-btn" id="pmVideoCall" title="Video Call">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="pm-music" id="pmMusic" style="display:none;">
+        <div class="pm-music-cover" id="pmMusicCover">🎵</div>
+        <div class="pm-music-info">
+          <span id="pmMusicName">Music</span>
+          <div class="music-progress-wrap"><div class="music-progress-bar" id="pmProgressBar"></div></div>
+        </div>
+        <button class="music-play-btn" id="pmPlayBtn" type="button">▶</button>
+      </div>
+      <audio id="pmAudio" preload="none"></audio>
+    </div>
+
+    <!-- VIDEO CALL MODAL -->
+    <div class="video-call-overlay" id="videoCallOverlay"></div>
+    <div class="video-call-modal" id="videoCallModal">
+      <div class="video-container">
+        <div class="remote-video-wrapper">
+          <video id="remoteVideo" playsinline></video>
+          <div class="remote-no-video" id="remoteNoVideo">
+            <div class="remote-avatar" id="remoteCallAvatar">?</div>
+            <div class="remote-name" id="remoteCallName">User</div>
+          </div>
+        </div>
+        <div class="local-video-wrapper">
+          <video id="localVideo" playsinline muted autoplay></video>
+          <div class="local-no-video" id="localNoVideo">
+            <div class="local-avatar" id="localCallAvatar">?</div>
+          </div>
+        </div>
+        <div class="screen-share-wrapper" id="screenShareWrapper" style="display:none;">
+          <video id="screenVideo" playsinline></video>
+        </div>
+      </div>
+      <div class="video-call-header">
+        <div class="call-info">
+          <span class="call-duration" id="callDuration">00:00</span>
+          <span class="call-status" id="callStatus">Connecting...</span>
+        </div>
+      </div>
+      <div class="video-call-controls">
+        <button class="call-control-btn mic-btn active" id="micToggleBtn" title="Microphone">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button class="call-control-btn camera-btn active" id="cameraToggleBtn" title="Camera">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </button>
+        <button class="call-control-btn screen-btn" id="screenShareBtn" title="Screen Share">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+        </button>
+        <button class="call-control-btn hangup-btn" id="hangupBtn" title="Hang Up">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.95 21c-1.05 0-2.05-.2-3-.57-1.29-.49-2.83-1.07-4.57-2.3l-.92-.68c-2.05-1.54-3.86-3.34-5.4-5.4l-.68-.92C4.92 9.88 4.34 8.34 3.85 7.05c-.37-.95-.57-1.95-.57-3C3.28 2.25 5.28.25 7.1.25c.78 0 1.52.23 2.17.67.32.21.59.46.8.74l1.99 2.79c.45.64.72 1.39.72 2.2 0 1.13-.56 2.16-1.43 2.8-.35.29-.73.52-1.14.67.27.83.71 1.66 1.29 2.51.54.81 1.21 1.56 1.96 2.24.68.63 1.43 1.3 2.24 1.84.85.58 1.68 1.02 2.51 1.29.15-.41.38-.79.67-1.14.64-.87 1.67-1.43 2.8-1.43.81 0 1.56.27 2.2.72l2.79 1.99c.28.21.53.48.74.8.44.65.67 1.39.67 2.17 0 1.82-2 3.82-3.75 3.82z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- INCOMING CALL MODAL -->
+    <div class="incoming-call-overlay" id="incomingCallOverlay"></div>
+    <div class="incoming-call-modal" id="incomingCallModal">
+      <div class="incoming-call-avatar" id="incomingCallAvatar">?</div>
+      <div class="incoming-call-name" id="incomingCallName">User</div>
+      <div class="incoming-call-text">is calling...</div>
+      <div class="incoming-call-buttons">
+        <button class="incoming-accept-btn" id="incomingAcceptBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </button>
+        <button class="incoming-reject-btn" id="incomingRejectBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 1h-8C6.12 1 5 2.12 5 3.5v17C5 21.88 6.12 23 7.5 23h8c1.38 0 2.5-1.12 2.5-2.5v-17C18 2.12 16.88 1 15.5 1zm-4 21c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5-4H7V4h9v14z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CHAT AREA -->
+    <main class="chat-area gpu" id="chatArea">
+      <div class="empty-chat" id="emptyState" data-i18n="selectChat">Select a chat</div>
+      <div id="activeChat" style="display:none; flex-direction:column; height:100%;">
+        <div class="chat-header" id="chatHeader">
+          <button class="mob-back-btn" id="backBtn" aria-label="Back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="chat-header-avatar" id="chatAvatar"></div>
+          <div class="chat-header-info">
+            <div class="chat-header-name" id="chatName"></div>
+            <div class="chat-header-status" id="chatStatus"></div>
+          </div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="input-area" id="inputArea">
+          <div class="emoji-picker" id="emojiPicker">
+            <div class="picker-tabs">
+              <button class="picker-tab active" data-tab="emoji">😊</button>
+              <button class="picker-tab" data-tab="stickers">🎨</button>
+              <button class="picker-tab" data-tab="gifs">GIF</button>
+            </div>
+            <div class="picker-body" id="pickerBody"></div>
+          </div>
+          <div class="input-row">
+            <button class="input-btn" id="emojiBtn" title="Emoji">😊</button>
+            <button class="input-btn" id="attachBtn" title="Attach">📎</button>
+            <textarea id="msgInput" rows="1" data-i18n-ph="msgPlaceholder" placeholder="Message..."></textarea>
+            <button class="send-btn" id="sendBtn" aria-label="Send">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- EVENT SOUNDS -->
+  <audio id="soundIncomingCall" preload="auto"></audio>
+  <audio id="soundAcceptCall" preload="auto"></audio>
+  <audio id="soundRejectCall" preload="auto"></audio>
+  <audio id="soundMessage" preload="auto"></audio>
+
+  <script src="script.js"></script>
+</body>
+</html>
